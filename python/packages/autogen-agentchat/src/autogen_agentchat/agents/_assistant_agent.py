@@ -35,7 +35,7 @@ from autogen_core.models import (
     LLMMessage,
     SystemMessage,
 )
-from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, ToolResult, Workbench
+from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, StreamWorkbench, ToolResult, Workbench
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -1577,7 +1577,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         for wb in workbench:
             tools = await wb.list_tools()
             if any(t["name"] == tool_call.name for t in tools):
-                if isinstance(wb, StaticStreamWorkbench):
+                if isinstance(wb, StreamWorkbench):
                     tool_result: ToolResult | None = None
                     async for event in wb.call_tool_stream(
                         name=tool_call.name,

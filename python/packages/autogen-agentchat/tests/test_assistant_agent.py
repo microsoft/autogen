@@ -4,7 +4,7 @@
 import asyncio
 import json
 import os
-from typing import Any, List, Optional, Union, cast
+from typing import Any, AsyncGenerator, List, Mapping, Optional, Union, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 # Third-party imports
@@ -40,6 +40,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.tools import StreamWorkbench, TextResultContent, ToolResult, ToolSchema
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -3167,6 +3168,80 @@ class TestAssistantAgentWorkbenchIntegration:
         content = result.messages[-1].content
         assert "Result from concurrent_tool1" in content
         assert "Result from concurrent_tool2" in content
+
+    @pytest.mark.asyncio
+    async def test_custom_stream_workbench_uses_streaming_path(self) -> None:
+        """Test that any StreamWorkbench, not just StaticStreamWorkbench, is streamed from."""
+
+        class CustomStreamWorkbench(StreamWorkbench):
+            async def list_tools(self) -> List[ToolSchema]:
+                return [ToolSchema(name="stream_tool", description="A streaming tool")]
+
+            async def call_tool(
+                self,
+                name: str,
+                arguments: Mapping[str, Any] | None = None,
+                cancellation_token: CancellationToken | None = None,
+                call_id: str | None = None,
+            ) -> ToolResult:
+                return ToolResult(name=name, result=[TextResultContent(content="final result")])
+
+            async def call_tool_stream(
+                self,
+                name: str,
+                arguments: Mapping[str, Any] | None = None,
+                cancellation_token: CancellationToken | None = None,
+                call_id: str | None = None,
+            ) -> AsyncGenerator[Any | ToolResult, None]:
+                yield ModelClientStreamingChunkEvent(content="progress", source="stream_tool")
+                yield ToolResult(name=name, result=[TextResultContent(content="final result")])
+
+            async def start(self) -> None:
+                pass
+
+            async def stop(self) -> None:
+                pass
+
+            async def reset(self) -> None:
+                pass
+
+            async def save_state(self) -> Mapping[str, Any]:
+                return {}
+
+            async def load_state(self, state: Mapping[str, Any]) -> None:
+                pass
+
+        model_client = ReplayChatCompletionClient(
+            [
+                CreateResult(
+                    finish_reason="function_calls",
+                    content=[FunctionCall(id="1", arguments=json.dumps({}), name="stream_tool")],
+                    usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                    cached=False,
+                ),
+            ],
+            model_info={
+                "function_calling": True,
+                "vision": False,
+                "json_output": False,
+                "family": ModelFamily.GPT_4O,
+                "structured_output": False,
+            },
+        )
+
+        agent = AssistantAgent(
+            name="test_agent",
+            model_client=model_client,
+            workbench=CustomStreamWorkbench(),
+        )
+
+        messages = [message async for message in agent.run_stream(task="Test streaming workbench")]
+
+        chunks = [m for m in messages if isinstance(m, ModelClientStreamingChunkEvent)]
+        assert [chunk.content for chunk in chunks] == ["progress"]
+        assert isinstance(messages[-1], TaskResult)
+        assert isinstance(messages[-1].messages[-1], ToolCallSummaryMessage)
+        assert messages[-1].messages[-1].content == "final result"
 
 
 class TestAssistantAgentComplexIntegration:
