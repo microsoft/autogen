@@ -322,7 +322,7 @@ async def main(model_config: Dict[str, Any], latest_user_input: Optional[str] = 
 
 async def ainput(prompt: str = "") -> str:
     with ThreadPoolExecutor(1, "AsyncInput") as executor:
-        return await asyncio.get_event_loop().run_in_executor(executor, input, prompt)
+        return await asyncio.get_running_loop().run_in_executor(executor, input, prompt)
 
 
 if __name__ == "__main__":
