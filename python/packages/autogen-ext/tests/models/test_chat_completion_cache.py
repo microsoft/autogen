@@ -12,6 +12,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.tools import FunctionTool
 from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from pydantic import BaseModel
@@ -56,6 +57,46 @@ async def test_cache_basic_with_args() -> None:
     assert isinstance(response2, CreateResult)
     assert not response2.cached
     assert response2.content == responses[2]
+
+
+@pytest.mark.asyncio
+async def test_cache_tool_choice_is_part_of_cache_key_for_create_and_stream() -> None:
+    """Different tool choice policies must not reuse each other's cached responses."""
+
+    def lookup(value: str) -> str:
+        return value
+
+    tool = FunctionTool(lookup, description="Look up a value")
+    messages = [UserMessage(content="Choose a tool policy", source="user")]
+
+    replay_client = ReplayChatCompletionClient(["required response", "none response", "specific response"])
+    replay_client.set_cached_bool_value(False)
+    cached_client = ChatCompletionCache(replay_client)
+
+    required = await cached_client.create(messages, tools=[tool], tool_choice="required")
+    none = await cached_client.create(messages, tools=[tool], tool_choice="none")
+    assert required.content == "required response"
+    assert none.content == "none response"
+    assert not required.cached
+    assert not none.cached
+
+    specific = await cached_client.create(messages, tools=[tool], tool_choice=tool)
+    assert specific.content == "specific response"
+    assert not specific.cached
+
+    stream_replay_client = ReplayChatCompletionClient(["stream required", "stream none"])
+    stream_replay_client.set_cached_bool_value(False)
+    stream_cached_client = ChatCompletionCache(stream_replay_client)
+
+    streamed_required: list[Union[str, CreateResult]] = []
+    async for chunk in stream_cached_client.create_stream(messages, tools=[tool], tool_choice="required"):
+        streamed_required.append(chunk)
+    streamed_none: list[Union[str, CreateResult]] = []
+    async for chunk in stream_cached_client.create_stream(messages, tools=[tool], tool_choice="none"):
+        streamed_none.append(chunk)
+
+    assert streamed_required[-1].content == "stream required"  # type: ignore[union-attr]
+    assert streamed_none[-1].content == "stream none"  # type: ignore[union-attr]
 
 
 @pytest.mark.asyncio
