@@ -589,3 +589,47 @@ async def test_func_tool_with_dataclass_conversion_failure() -> None:
 
     with pytest.raises(ValidationError, match="Field required"):
         await tool.run_json(test_input, CancellationToken())
+
+
+def _scale_sync(value: int, /, *, factor: int = 2) -> int:
+    return value * factor
+
+
+async def _scale_async(value: int, /, factor: int = 3) -> int:
+    return value * factor
+
+
+def _cancel_sync(x: int, cancellation_token: CancellationToken, /) -> int:
+    return x + 1
+
+
+async def _cancel_async(x: int, cancellation_token: CancellationToken, /) -> int:
+    return x + 2
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_sync() -> None:
+    tool = FunctionTool(_scale_sync, description="Scale value sync.")
+    result = await tool.run_json({"value": 4, "factor": 5}, CancellationToken())
+    assert result == 20
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_async() -> None:
+    tool = FunctionTool(_scale_async, description="Scale value async.")
+    result = await tool.run_json({"value": 4}, CancellationToken())
+    assert result == 12
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_cancellation_token_sync() -> None:
+    tool = FunctionTool(_cancel_sync, description="Cancel token sync.")
+    result = await tool.run_json({"x": 10}, CancellationToken())
+    assert result == 11
+
+
+@pytest.mark.asyncio
+async def test_func_tool_positional_only_cancellation_token_async() -> None:
+    tool = FunctionTool(_cancel_async, description="Cancel token async.")
+    result = await tool.run_json({"x": 10}, CancellationToken())
+    assert result == 12
