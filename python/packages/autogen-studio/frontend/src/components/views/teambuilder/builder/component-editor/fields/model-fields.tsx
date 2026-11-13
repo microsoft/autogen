@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { Input, InputNumber, Select, Tooltip, Collapse } from "antd";
+import { Input, InputNumber, Select, Tooltip, Collapse, Switch, AutoComplete } from "antd";
 import TextArea from "antd/es/input/TextArea";
 import { HelpCircle, Settings, User, Wrench } from "lucide-react";
 import {
@@ -23,7 +23,7 @@ const InputWithTooltip: React.FC<{
   tooltip: string;
   children: React.ReactNode;
 }> = ({ label, tooltip, children }) => (
-  <label className="block">
+  <div className="block">
     <div className="flex items-center gap-2 mb-1">
       <span className="text-sm font-medium text-primary">{label}</span>
       <Tooltip title={tooltip}>
@@ -31,7 +31,7 @@ const InputWithTooltip: React.FC<{
       </Tooltip>
     </div>
     {children}
-  </label>
+  </div>
 );
 
 // Define possible field names to ensure type safety
@@ -56,7 +56,8 @@ type FieldName =
   | "azure_ad_token"
   | "tools"
   | "tool_choice"
-  | "metadata";
+  | "metadata"
+  | "model_info";
 
 // Define the field specification type
 interface FieldSpec {
@@ -70,7 +71,146 @@ interface FieldSpec {
   };
 }
 
-// Field specifications for all possible model parameters
+const defaultModelInfo = {
+  vision: false,
+  function_calling: false,
+  json_output: false,
+  structured_output: false,
+  family: "",
+  multiple_system_messages: false,
+};
+
+const ModelInfoEditor: React.FC<{
+  value: any;
+  onChange: (value: any) => void;
+}> = ({ value, onChange }) => {
+  const modelInfo = value || defaultModelInfo;
+
+  const updateField = (field: string, newValue: any) => {
+    onChange({
+      ...modelInfo,
+      [field]: newValue,
+    });
+  };
+
+  return (
+    <div className="space-y-4 p-4 border rounded-lg">
+      <div className="grid grid-cols-2 gap-4">
+        <InputWithTooltip
+          label="Vision Support"
+          tooltip="Enable vision support (image input capability)."
+        >
+          <Switch
+            checked={modelInfo.vision}
+            onChange={(checked) => updateField("vision", checked)}
+            className="w-16"
+          />
+        </InputWithTooltip>
+
+        <InputWithTooltip
+          label="Function Calling"
+          tooltip="Enable function calling feature for external integrations."
+        >
+          <Switch
+            checked={modelInfo.function_calling}
+            onChange={(checked) => updateField("function_calling", checked)}
+            className="w-16"
+          />
+        </InputWithTooltip>
+
+        <InputWithTooltip
+          label="JSON Output"
+          tooltip="Enable JSON output mode (distinct from structured output)."
+        >
+          <Switch
+            checked={modelInfo.json_output}
+            onChange={(checked) => updateField("json_output", checked)}
+            className="w-16"
+          />
+        </InputWithTooltip>
+
+        <InputWithTooltip
+          label="Structured Output"
+          tooltip="Enable structured output mode (distinct from JSON output)."
+        >
+          <Switch
+            checked={modelInfo.structured_output}
+            onChange={(checked) => updateField("structured_output", checked)}
+            className="w-16"
+          />
+        </InputWithTooltip>
+
+        <InputWithTooltip
+          label="Multiple System Messages"
+          tooltip="Enable support for multiple, non-consecutive system messages."
+        >
+          <Switch
+            checked={modelInfo.multiple_system_messages}
+            onChange={(checked) => updateField("multiple_system_messages", checked)}
+            className="w-16"
+          />
+        </InputWithTooltip>
+      </div>
+
+      <InputWithTooltip
+        label="Model Family"
+        tooltip="Model family should be one of the constants from ModelFamily or a string for unknown families."
+      >
+        <AutoComplete
+          value={modelInfo.family}
+          onChange={(value) => updateField("family", value)}
+          className="w-full mt-1"
+          placeholder="Select or enter model family"
+          options={[
+            { label: "GPT-4.1", value: "gpt-41" },
+            { label: "GPT-4.5", value: "gpt-45" },
+            { label: "GPT-4o", value: "gpt-4o" },
+            { label: "GPT-4", value: "gpt-4" },
+            { label: "GPT-3.5", value: "gpt-35" },
+            { label: "o1", value: "o1" },
+            { label: "o3", value: "o3" },
+            { label: "o4", value: "o4" },
+            { label: "r1", value: "r1" },
+            
+            { label: "Gemini 1.5 Flash", value: "gemini-1.5-flash" },
+            { label: "Gemini 1.5 Pro", value: "gemini-1.5-pro" },
+            { label: "Gemini 2.0 Flash", value: "gemini-2.0-flash" },
+            { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
+            { label: "Gemini 2.5 Flash", value: "gemini-2.5-flash" },
+            
+            { label: "Claude 3 Haiku", value: "claude-3-haiku" },
+            { label: "Claude 3 Sonnet", value: "claude-3-sonnet" },
+            { label: "Claude 3 Opus", value: "claude-3-opus" },
+            { label: "Claude 3.5 Haiku", value: "claude-3-5-haiku" },
+            { label: "Claude 3.5 Sonnet", value: "claude-3-5-sonnet" },
+            { label: "Claude 3.7 Sonnet", value: "claude-3-7-sonnet" },
+            { label: "Claude 4 Opus", value: "claude-4-opus" },
+            { label: "Claude 4 Sonnet", value: "claude-4-sonnet" },
+            
+            { label: "Llama 3.3 8B", value: "llama-3.3-8b" },
+            { label: "Llama 3.3 70B", value: "llama-3.3-70b" },
+            { label: "Llama 4 Scout", value: "llama-4-scout" },
+            { label: "Llama 4 Maverick", value: "llama-4-maverick" },
+            
+            { label: "Codestral", value: "codestral" },
+            { label: "Open Codestral Mamba", value: "open-codestral-mamba" },
+            { label: "Mistral", value: "mistral" },
+            { label: "Ministral", value: "ministral" },
+            { label: "Pixtral", value: "pixtral" },
+            
+            { label: "Unknown", value: "unknown" },
+          ]}
+          filterOption={(input, option) =>
+            (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+          }
+          allowClear
+        />
+      </InputWithTooltip>
+    </div>
+  );
+};
+
+// Field specifications for each possible model parameters
 const fieldSpecs: Record<FieldName, FieldSpec> = {
   // Common fields
   temperature: {
@@ -258,6 +398,17 @@ const fieldSpecs: Record<FieldName, FieldSpec> = {
       },
     },
   },
+  model_info: {
+    label: "Model Information",
+    tooltip: "Model capabilities and features",
+    component: ModelInfoEditor,
+    props: {},
+    transform: {
+      fromConfig: (value: any) => 
+        value ? { ...defaultModelInfo, ...value } : defaultModelInfo,
+      toConfig: (value: any) => ({ ...defaultModelInfo, ...value }),
+    },
+  },
 };
 
 // Define provider field mapping type
@@ -266,6 +417,7 @@ type ProviderType = "openai" | "azure" | "anthropic";
 interface ProviderFields {
   modelConfig: FieldName[];
   modelParams: FieldName[];
+  modelInfo: FieldName[];
 }
 
 // Define which fields each provider uses
@@ -287,6 +439,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "presence_penalty",
       "stop",
     ],
+    modelInfo: ["model_info"],
   },
   azure: {
     modelConfig: [
@@ -307,6 +460,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "presence_penalty",
       "stop",
     ],
+    modelInfo: ["model_info"],
   },
   anthropic: {
     modelConfig: ["model", "api_key", "base_url", "timeout", "max_retries"],
@@ -320,6 +474,7 @@ const providerFields: Record<ProviderType, ProviderFields> = {
       "tool_choice",
       "metadata",
     ],
+    modelInfo: ["model_info"],
   },
 };
 
@@ -412,7 +567,7 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
 
   return (
     <Collapse
-      defaultActiveKey={["details", "configuration", "parameters"]}
+      defaultActiveKey={["details", "configuration", "parameters", "model_info"]}
       className="border-0"
       expandIconPosition="end"
       items={[
@@ -478,6 +633,16 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
             </div>
           ),
           children: renderFieldGroup(providerFields[providerType].modelParams),
+        },
+        {
+          key: "model_info",
+          label: (
+            <div className="flex items-center gap-2">
+              <HelpCircle className="w-4 h-4 text-purple-500" />
+              <span className="font-medium">Model Information</span>
+            </div>
+          ),
+          children: renderFieldGroup(providerFields[providerType].modelInfo),
         },
         // Only render tool configuration if it's an Anthropic model and has tools
         ...(providerType === "anthropic" &&
