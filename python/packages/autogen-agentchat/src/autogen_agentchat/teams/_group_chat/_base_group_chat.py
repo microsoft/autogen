@@ -27,6 +27,7 @@ from ...messages import (
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import (
+    GroupChatGetThread,
     GroupChatPause,
     GroupChatReset,
     GroupChatResume,
@@ -146,6 +147,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Flag to track if the group chat is running.
         self._is_running = False
+
+        # Lock to serialize access to the embedded runtime when getting the thread,
+        # so that concurrent calls do not race on start/stop of the runtime.
+        self._get_thread_lock = asyncio.Lock()
 
         # Flag to track if the team events should be emitted.
         self._emit_team_events = emit_team_events
@@ -744,6 +749,57 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             GroupChatResume(),
             recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
         )
+
+    async def get_thread(self) -> List[BaseAgentEvent | BaseChatMessage]:
+        """Get the message thread of the group chat.
+
+        The message thread contains the messages produced by the team so far.
+        The thread is retrieved by sending a :class:`GroupChatGetThread` RPC request
+        to the group chat manager.
+
+        If the team uses an embedded runtime and is not currently running, the runtime
+        is started for the duration of the call and stopped again afterwards.
+
+        Returns:
+            A list of :class:`~autogen_agentchat.messages.BaseAgentEvent` and
+            :class:`~autogen_agentchat.messages.BaseChatMessage` in the thread.
+            Empty if the team has not been run yet.
+
+        Example:
+
+        .. code-block:: python
+
+            async for message in team.run_stream(task="Hello"):
+                pass
+            thread = await team.get_thread()
+            # ``get_thread`` can also be called after pausing/resuming the team.
+
+        .. note::
+
+            :meth:`get_thread` is safe to call concurrently; concurrent calls are
+            serialized internally.
+        """
+        async with self._get_thread_lock:
+            if not self._initialized:
+                await self._init(self._runtime)
+
+            # The RPC request needs the runtime message loop to be running. For an embedded
+            # runtime that is not currently running (e.g. after :meth:`run` has finished),
+            # start it for the duration of the call and stop it again afterwards.
+            started_here = False
+            if self._embedded_runtime and not self._is_running:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                self._runtime.start()
+                started_here = True
+
+            try:
+                # Send a get thread message to the group chat manager via RPC.
+                agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+                return await self._runtime.send_message(GroupChatGetThread(), recipient=agent_id)
+            finally:
+                if started_here:
+                    assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                    await self._runtime.stop_when_idle()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.

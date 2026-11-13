@@ -30,4 +30,7 @@ def get_types(t: object) -> Sequence[Type[Any]] | None:
     elif isinstance(t, NoneType):
         return (NoneType,)
     else:
+        origin = get_origin(t)
+        if origin is list:
+            return (list,)
         return None
