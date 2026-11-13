@@ -33,7 +33,7 @@ class AzureAICreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     max_tokens: Optional[int]
-    response_format: Optional[Literal["text", "json_object"]]
+    response_format: Optional[Union[Literal["text", "json_object"], JsonSchemaFormat]]
     stop: Optional[List[str]]
     tools: Optional[List[ChatCompletionsToolDefinition]]
     tool_choice: Optional[Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]]

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from datetime import datetime
-from typing import Any, AsyncGenerator, List, Type, Union
+from typing import Any, AsyncGenerator, Dict, List, Type, Union
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -21,6 +21,7 @@ from azure.ai.inference.models import (
     ChatResponseMessage,
     CompletionsFinishReason,
     CompletionsUsage,
+    JsonSchemaFormat,
     StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
     StreamingChatResponseMessageUpdate,
@@ -29,6 +30,7 @@ from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
 from azure.core.credentials import AzureKeyCredential
+from pydantic import BaseModel
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -973,3 +975,324 @@ async def test_azure_ai_tool_choice_specific_tool_streaming(
     assert final_result.content[0].name == "process_text"
     assert final_result.content[0].arguments == '{"input": "hello"}'
     assert final_result.thought == "Let me process this for you."
+
+
+class CityInfo(BaseModel):
+    """Structured output type used by the structured output tests."""
+
+    name: str
+    country: str
+    population: int
+
+
+@pytest.fixture
+def structured_output_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that simulates structured JSON output for structured output tests.
+    """
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(
+                        role="assistant",
+                        content='{"name": "Paris", "country": "France", "population": 2161000}',
+                    ),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+        )
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_structured_output_create(
+    structured_output_client: AzureAIChatCompletionClient,
+) -> None:
+    """Test structured output with json_output set to a Pydantic model class."""
+    result = await structured_output_client.create(
+        messages=[UserMessage(content="Tell me about Paris", source="user")],
+        json_output=CityInfo,
+    )
+
+    assert isinstance(result.content, str)
+    city = CityInfo.model_validate_json(result.content)
+    assert city.name == "Paris"
+    assert city.country == "France"
+    assert city.population == 2161000
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_structured_output_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Ensures error is raised if we request structured output but the model_info doesn't support it.
+    """
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": False,
+        },
+        model="model",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        await client.create(
+            messages=[UserMessage(content="Hello", source="user")],
+            json_output=CityInfo,
+        )
+    assert "Model does not support structured output" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_structured_output_invalid_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Ensures error is raised if the model returns content that doesn't conform to the schema.
+    """
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(role="assistant", content="Paris is the capital of France."),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+        )
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+    with pytest.raises(ValueError) as exc:
+        await client.create(
+            messages=[UserMessage(content="Tell me about Paris", source="user")],
+            json_output=CityInfo,
+        )
+    assert "Failed to parse structured output" in str(exc.value)
+
+
+@pytest.fixture
+def structured_output_stream_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that streams structured JSON output.
+    """
+
+    json_parts = ['{"name": "Paris"', ', "country": "France"', ', "population": 2161000}']
+
+    async def _mock_structured_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        for part in json_parts:
+            await asyncio.sleep(0.01)
+            yield StreamingChatCompletionsUpdate(
+                id="id",
+                choices=[
+                    StreamingChatChoiceUpdate(
+                        index=0,
+                        finish_reason="stop",
+                        delta=StreamingChatResponseMessageUpdate(role="assistant", content=part),
+                    )
+                ],
+                created=datetime.now(),
+                model="model",
+                usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30)
+                if part == json_parts[-1]
+                else None,
+            )
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> Any:
+        if kwargs.get("stream", False):
+            return _mock_structured_stream(*args, **kwargs)
+        return None
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_structured_output_stream(
+    structured_output_stream_client: AzureAIChatCompletionClient,
+) -> None:
+    """Test structured output with streaming."""
+    chunks: List[Union[str, CreateResult]] = []
+    async for chunk in structured_output_stream_client.create_stream(
+        messages=[UserMessage(content="Tell me about Paris", source="user")],
+        json_output=CityInfo,
+    ):
+        chunks.append(chunk)
+
+    final_result = chunks[-1]
+    assert isinstance(final_result, CreateResult)
+    assert isinstance(final_result.content, str)
+    city = CityInfo.model_validate_json(final_result.content)
+    assert city.name == "Paris"
+    assert city.country == "France"
+    assert city.population == 2161000
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_structured_output_passes_response_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that a JsonSchemaFormat is passed to the underlying client.complete()."""
+    captured_kwargs: Dict[str, Any] = {}
+
+    mock_client = MagicMock()
+    mock_client.close = AsyncMock()
+
+    async def mock_complete(*args: Any, **kwargs: Any) -> ChatCompletions:
+        captured_kwargs.update(kwargs)
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(
+                        role="assistant",
+                        content='{"name": "Paris", "country": "France", "population": 2161000}',
+                    ),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
+        )
+
+    mock_client.complete = mock_complete
+
+    def mock_new(cls: Type[ChatCompletionsClient], *args: Any, **kwargs: Any) -> MagicMock:
+        return mock_client
+
+    monkeypatch.setattr(ChatCompletionsClient, "__new__", mock_new)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": True,
+            "function_calling": False,
+            "vision": False,
+            "family": "unknown",
+            "structured_output": True,
+        },
+        model="model",
+    )
+
+    await client.create(
+        messages=[UserMessage(content="Tell me about Paris", source="user")],
+        json_output=CityInfo,
+    )
+
+    assert "response_format" in captured_kwargs
+    response_format = captured_kwargs["response_format"]
+    assert isinstance(response_format, JsonSchemaFormat)
+    assert response_format.name == "CityInfo"
+    assert response_format.strict is True
+    assert response_format.schema == CityInfo.model_json_schema()
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_json_output_bool(structured_output_client: AzureAIChatCompletionClient) -> None:
+    """Verify that json_output=True still uses the json_object response format."""
+    result = await structured_output_client.create(
+        messages=[UserMessage(content="Tell me about Paris", source="user")],
+        json_output=True,
+    )
+    assert isinstance(result.content, str)
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_json_output_invalid_type(structured_output_client: AzureAIChatCompletionClient) -> None:
+    """Ensures error is raised if json_output is neither a boolean nor a Pydantic model class."""
+    with pytest.raises(ValueError) as exc:
+        await structured_output_client.create(
+            messages=[UserMessage(content="Hello", source="user")],
+            json_output="json",  # type: ignore
+        )
+    assert "json_output must be a boolean or a Pydantic model class" in str(exc.value)
