@@ -39,7 +39,9 @@ from autogen_core.tools import BaseTool, FunctionTool, StaticStreamWorkbench, To
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from .. import EVENT_LOGGER_NAME
+#from .. import EVENT_LOGGER_NAME
+from ..utils.constants import EVENT_LOGGER_NAME
+
 from ..base import Handoff as HandoffBase
 from ..base import Response
 from ..messages import (
