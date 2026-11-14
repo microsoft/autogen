@@ -1,8 +1,9 @@
+import base64
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -21,6 +22,13 @@ class MemoryMimeType(Enum):
 
 
 ContentType = Union[str, bytes, Dict[str, Any], Image]
+
+_BYTES_DATA_URI_PREFIX = "data:application/octet-stream;base64,"
+
+
+def _convert_bytes_to_data_uri(data: bytes) -> str:
+    """Encode ``bytes`` as a base64 data URI so JSON serialization is lossless."""
+    return _BYTES_DATA_URI_PREFIX + base64.b64encode(data).decode("ascii")
 
 
 class MemoryContent(BaseModel):
@@ -43,6 +51,27 @@ class MemoryContent(BaseModel):
         if isinstance(mime_type, MemoryMimeType):
             return mime_type.value
         return mime_type
+
+    @field_serializer("content", when_used="json")
+    def serialize_content(self, content: ContentType) -> Any:
+        """Serialize ``bytes`` content as a base64 data URI so JSON mode is lossless.
+
+        Without this, pydantic's JSON mode UTF-8 decodes ``bytes`` into ``str``
+        (silently changing the type, or raising ``UnicodeDecodeError`` for
+        non-UTF-8 data). Other content types are returned unchanged and are
+        serialized by pydantic as usual.
+        """
+        if isinstance(content, bytes):
+            return _convert_bytes_to_data_uri(content)
+        return content
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def validate_content(cls, value: Any) -> Any:
+        """Restore ``bytes`` content that was serialized as a base64 data URI."""
+        if isinstance(value, str) and value.startswith(_BYTES_DATA_URI_PREFIX):
+            return base64.b64decode(value[len(_BYTES_DATA_URI_PREFIX) :])
+        return value
 
 
 class MemoryQueryResult(BaseModel):

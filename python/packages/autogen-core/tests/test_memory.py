@@ -1,6 +1,7 @@
 from typing import Any
 
 import pytest
+
 from autogen_core import CancellationToken, ComponentModel
 from autogen_core.memory import (
     ListMemory,
@@ -175,3 +176,30 @@ async def test_list_memory_content_types() -> None:
     assert isinstance(results.results[0].content, str)
     assert isinstance(results.results[1].content, dict)
     assert isinstance(results.results[2].content, bytes)
+
+
+def test_memory_content_bytes_json_roundtrip() -> None:
+    """Bytes content must survive JSON serialization round-trip losslessly."""
+    # Non-UTF-8 bytes must not crash on JSON dump and must round-trip as bytes.
+    binary_content = MemoryContent(content=b"\x89PNG\r\n\x1a\n", mime_type=MemoryMimeType.BINARY)
+    dumped = binary_content.model_dump(mode="json")
+    assert isinstance(dumped["content"], str)
+    assert dumped["content"].startswith("data:application/octet-stream;base64,")
+    restored = MemoryContent.model_validate(dumped)
+    assert isinstance(restored.content, bytes)
+    assert restored.content == b"\x89PNG\r\n\x1a\n"
+
+    # UTF-8 bytes must round-trip as bytes, not be silently coerced to str.
+    utf8_content = MemoryContent(content=b"hello", mime_type=MemoryMimeType.BINARY)
+    restored = MemoryContent.model_validate(utf8_content.model_dump(mode="json"))
+    assert isinstance(restored.content, bytes)
+    assert restored.content == b"hello"
+
+    # str and dict content must be unaffected.
+    assert MemoryContent(content="hello", mime_type=MemoryMimeType.TEXT).model_dump(mode="json")["content"] == "hello"
+    assert MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON).model_dump(mode="json")["content"] == {
+        "key": "value"
+    }
+
+    # Python-mode dump (non-JSON) must keep bytes untouched.
+    assert MemoryContent(content=b"hello", mime_type=MemoryMimeType.BINARY).model_dump()["content"] == b"hello"
