@@ -66,6 +66,42 @@ worker_runtime = GrpcWorkerAgentRuntime(tracer_provider=tracer_provider)
 
 And that's it! Your application is now instrumented with open telemetry. You can now view your telemetry data in your telemetry backend.
 
+### Using with Comet Opik
+
+You can export AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/integrations/autogen) using the HTTP exporter. Install `opentelemetry-sdk` and `opentelemetry-exporter-otlp-proto-http` as shown above.
+
+For a new tracing setup, use the following configuration instead of the generic exporter setup above. Set `OPIK_API_KEY` to your raw Opik API key (without a `Bearer` prefix), `OPIK_WORKSPACE` to your workspace name, and `OPIK_PROJECT_NAME` to the destination project name.
+
+```python
+import os
+
+from autogen_core import SingleThreadedAgentRuntime
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+tracer_provider = TracerProvider()
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(
+        OTLPSpanExporter(
+            endpoint="https://www.comet.com/opik/api/v1/private/otel/v1/traces",
+            headers={
+                "Authorization": os.environ["OPIK_API_KEY"],
+                "Comet-Workspace": os.environ["OPIK_WORKSPACE"],
+                "projectName": os.environ["OPIK_PROJECT_NAME"],
+            },
+        )
+    )
+)
+trace.set_tracer_provider(tracer_provider)
+runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
+```
+
+This example uses the Opik Cloud traces endpoint. For self-hosted or enterprise deployments, use your deployment's full traces URL from [Opik's OpenTelemetry guide](https://www.comet.com/docs/opik/integrations/opentelemetry). The `projectName` header is optional. Omit it to use Opik's default project.
+
+When the application stops producing spans, call `tracer_provider.shutdown()`. This setup exports AutoGen's instrumented spans. Tracing OpenAI calls also requires separate [OpenAI instrumentation](../../agentchat-user-guide/tracing.ipynb).
+
 ### Existing instrumentation
 
 If you have open telemetry already set up in your application, you can pass the tracer provider to the runtime when creating it:
