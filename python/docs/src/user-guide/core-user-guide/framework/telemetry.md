@@ -68,21 +68,39 @@ And that's it! Your application is now instrumented with open telemetry. You can
 
 ### Using with Comet Opik
 
-You can send AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/integrations/autogen) by configuring your OTLP exporter with your Opik project endpoint and headers.
+You can export AutoGen traces to [Comet Opik](https://www.comet.com/docs/opik/integrations/autogen) using the HTTP exporter. Install `opentelemetry-sdk` and `opentelemetry-exporter-otlp-proto-http` as shown above.
+
+For a new tracing setup, use the following configuration instead of the generic exporter setup above. Set `OPIK_API_KEY` to your raw Opik API key (without a `Bearer` prefix), `OPIK_WORKSPACE` to your workspace name, and `OPIK_PROJECT_NAME` to the destination project name.
 
 ```python
-from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+import os
 
-processor = BatchSpanProcessor(
-    OTLPSpanExporter(
-        endpoint="<opik_otlp_endpoint>",
-        headers={"Authorization": "<opik_otlp_headers>"},
+from autogen_core import SingleThreadedAgentRuntime
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+tracer_provider = TracerProvider()
+tracer_provider.add_span_processor(
+    BatchSpanProcessor(
+        OTLPSpanExporter(
+            endpoint="https://www.comet.com/opik/api/v1/private/otel/v1/traces",
+            headers={
+                "Authorization": os.environ["OPIK_API_KEY"],
+                "Comet-Workspace": os.environ["OPIK_WORKSPACE"],
+                "projectName": os.environ["OPIK_PROJECT_NAME"],
+            },
+        )
     )
 )
-tracer_provider.add_span_processor(processor)
+trace.set_tracer_provider(tracer_provider)
+runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
 ```
 
-Get these values from your Opik project settings.
+This example uses the Opik Cloud traces endpoint. For self-hosted or enterprise deployments, use your deployment's full traces URL from [Opik's OpenTelemetry guide](https://www.comet.com/docs/opik/integrations/opentelemetry). The `projectName` header is optional. Omit it to use Opik's default project.
+
+When the application stops producing spans, call `tracer_provider.shutdown()`. This setup exports AutoGen's instrumented spans. Tracing OpenAI calls also requires separate [OpenAI instrumentation](../../agentchat-user-guide/tracing.ipynb).
 
 ### Existing instrumentation
 
