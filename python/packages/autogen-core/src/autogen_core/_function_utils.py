@@ -120,11 +120,13 @@ class ToolFunction(BaseModel):
 def type2description(k: str, v: Union[Annotated[Type[Any], str], Type[Any]]) -> str:
     # handles Annotated
     if hasattr(v, "__metadata__"):
-        retval = v.__metadata__[0]
-        if isinstance(retval, str):
-            return retval
-        else:
-            raise ValueError(f"Invalid description {retval} for parameter {k}, should be a string.")
+        for metadata in v.__metadata__:
+            if isinstance(metadata, str):
+                return metadata
+            description = getattr(metadata, "description", None)
+            if isinstance(description, str):
+                return description
+        return k
     else:
         return k
 

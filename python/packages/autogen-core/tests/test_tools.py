@@ -5,7 +5,7 @@ from typing import Annotated, List
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core._function_utils import get_typed_signature
+from autogen_core._function_utils import get_typed_signature, type2description
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
 from pydantic import BaseModel, Field, ValidationError, model_serializer
@@ -92,6 +92,20 @@ def test_func_tool_schema_generation() -> None:
     assert "required" in schema["parameters"]
     assert schema["parameters"]["required"] == ["arg", "other"]
     assert len(schema["parameters"]["properties"]) == 3
+
+
+def test_func_tool_schema_generation_field_description() -> None:
+    def my_function(query: Annotated[str, Field(description="SQL search term")]) -> str:
+        return query
+
+    tool = FunctionTool(my_function, description="Function tool.")
+
+    assert tool.schema["parameters"]["properties"]["query"]["description"] == "SQL search term"
+
+
+def test_type2description_uses_string_metadata_and_falls_back_to_parameter_name() -> None:
+    assert type2description("value", Annotated[int, Field(description="A value")]) == "A value"
+    assert type2description("value", Annotated[int, object()]) == "value"
 
 
 def test_func_tool_schema_generation_strict() -> None:
