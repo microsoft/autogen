@@ -19,6 +19,7 @@ import pytest_asyncio
 from aiofiles import open
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
+from autogen_ext.code_executors._common import get_required_packages
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 HAS_POWERSHELL: bool = platform.system() == "Windows" and (
@@ -445,3 +446,18 @@ async def test_cleanup_temp_files_oserror(caplog: pytest.LogCaptureFixture) -> N
                 # The code file should have been attempted to be deleted and failed
                 assert any("Failed to delete temporary file" in record.message for record in caplog.records)
                 assert any("Mocked OSError" in record.message for record in caplog.records)
+
+
+def test_get_required_packages_accumulates_across_lines() -> None:
+    code = (
+        "# comment\n"
+        "!pip install numpy\n"
+        "!pip install pandas, requests\n"
+        "import numpy, pandas, requests\n"
+    )
+    assert get_required_packages(code, "python") == {"numpy", "pandas", "requests"}
+
+
+def test_get_required_packages_non_python_returns_empty() -> None:
+    code = "!pip install numpy\n"
+    assert get_required_packages(code, "bash") == set()

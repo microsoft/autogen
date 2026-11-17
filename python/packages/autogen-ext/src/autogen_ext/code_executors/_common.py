@@ -138,14 +138,14 @@ def get_required_packages(code: str, lang: str) -> set[str]:
     else:
         return ret
 
-    # Find lines that start with pip install and make sure "-qqq" flag is added.
+    # Collect the packages from every pip install line.
     lines = code.split("\n")
     for _, line in enumerate(lines):
         # use regex to find lines that start with pip install.
         match = re.search(regex, line)
         if match is not None:
             reqs = match.group(1).split(",")
-            ret = {req.strip(" ") for req in reqs}
+            ret.update(req.strip() for req in reqs if req.strip())
     return ret
 
 
