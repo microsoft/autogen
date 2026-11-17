@@ -431,3 +431,21 @@ async def test_functional_termination() -> None:
     assert termination.terminated
     await termination.reset()
     assert await termination([TextMessage(content="Hello", source="user")]) is None
+
+
+@pytest.mark.asyncio
+async def test_text_mention_termination_sources_roundtrip() -> None:
+    termination = TextMentionTermination("stop", sources=["agent"])
+    restored = TextMentionTermination.load_component(termination.dump_component())
+    assert restored._sources == ["agent"]
+    # The restored condition still ignores the text when the source does not match.
+    assert await restored([TextMessage(content="stop", source="user")]) is None
+    assert await restored([TextMessage(content="stop", source="agent")]) is not None
+
+    roundtrip = TextMentionTermination.load_component(restored.dump_component())
+    assert roundtrip._sources == ["agent"]
+
+    no_sources = TextMentionTermination("stop")
+    restored_no_sources = TextMentionTermination.load_component(no_sources.dump_component())
+    assert restored_no_sources._sources is None
+    assert await restored_no_sources([TextMessage(content="stop", source="anyone")]) is not None
