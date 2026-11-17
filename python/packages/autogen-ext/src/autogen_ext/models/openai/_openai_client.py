@@ -1306,6 +1306,30 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             # Close the client when done.
             # await custom_model_client.close()
 
+        To use another OpenAI-compatible provider, pass that provider's `base_url`; `model_info` is
+        required whenever the model name is not an OpenAI model. For example, to use PZERO:
+
+        .. code-block:: python
+
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_core.models import ModelFamily
+
+            pzero_client = OpenAIChatCompletionClient(
+                model="deepseek-v4-flash",
+                base_url="https://api.pzero.studio/v1",
+                api_key="pzero_YOUR_KEY",
+                model_info={
+                    "vision": False,
+                    "function_calling": True,
+                    "json_output": True,
+                    "family": ModelFamily.UNKNOWN,
+                    "structured_output": False,
+                },
+            )
+
+            # Close the client when done.
+            # await pzero_client.close()
+
         To use streaming mode, you can use the following code snippet:
 
         .. code-block:: python
