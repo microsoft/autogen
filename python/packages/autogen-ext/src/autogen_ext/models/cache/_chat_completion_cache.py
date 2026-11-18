@@ -272,14 +272,16 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         """
         cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
         if cached_result is not None:
+            # Copies are deep so that the caller cannot mutate the cached instance,
+            # including nested content such as ``FunctionCall.arguments``.
             if isinstance(cached_result, CreateResult):
                 # Cache hit from previous non-streaming call
-                return cached_result.model_copy(update={"cached": True})
+                return cached_result.model_copy(update={"cached": True}, deep=True)
             elif isinstance(cached_result, list):
                 # Cache hit from previous streaming call - extract the final CreateResult
                 for item in reversed(cached_result):
                     if isinstance(item, CreateResult):
-                        return item.model_copy(update={"cached": True})
+                        return item.model_copy(update={"cached": True}, deep=True)
                 # If no CreateResult found in list, fall through to make actual call
 
         result = await self.client.create(
@@ -290,7 +292,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             extra_create_args=extra_create_args,
             cancellation_token=cancellation_token,
         )
-        self.store.set(cache_key, result)
+        # Store a deep copy: the cached instance must not share mutable state with
+        # the result handed back to the caller.
+        self.store.set(cache_key, result.model_copy(deep=True))
         return result
 
     def create_stream(
@@ -323,13 +327,13 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
                     # Cache hit from previous streaming call
                     for result in cached_result:
                         if isinstance(result, CreateResult):
-                            yield result.model_copy(update={"cached": True})
+                            yield result.model_copy(update={"cached": True}, deep=True)
                         else:
                             yield result
                     return
                 elif isinstance(cached_result, CreateResult):
                     # Cache hit from previous non-streaming call - convert to streaming format
-                    cached_result = cached_result.model_copy(update={"cached": True})
+                    cached_result = cached_result.model_copy(update={"cached": True}, deep=True)
 
                     # If content is a non-empty string, yield it as a streaming chunk first
                     if isinstance(cached_result.content, str) and cached_result.content:
@@ -350,7 +354,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
             output_results: List[Union[str, CreateResult]] = []
 
             async for result in result_stream:
-                output_results.append(result)
+                # Cache a deep copy so mutating a yielded chunk cannot change what a
+                # later cache hit returns.
+                output_results.append(result.model_copy(deep=True) if isinstance(result, CreateResult) else result)
                 yield result
 
             # Store the complete results only after streaming is finished
