@@ -11,7 +11,7 @@ T = TypeVar("T")
 
 class CacheStore(ABC, Generic[T], ComponentBase[BaseModel]):
     """
-    This protocol defines the basic interface for store/cache operations.
+    This abstract base class defines the basic interface for store/cache operations.
 
     Sub-classes should handle the lifecycle of underlying storage.
     """
