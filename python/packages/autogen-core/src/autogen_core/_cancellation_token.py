@@ -20,7 +20,7 @@ class CancellationToken:
                     callback()
 
     def is_cancelled(self) -> bool:
-        """Check if the CancellationToken has been used"""
+        """Check if the CancellationToken has been cancelled"""
         with self._lock:
             return self._cancelled
 
