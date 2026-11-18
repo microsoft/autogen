@@ -156,7 +156,7 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
 
 
 class FunctionalTermination(TerminationCondition):
-    """Terminate the conversation if an functional expression is met.
+    """Terminate the conversation if a functional expression is met.
 
     Args:
         func (Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], bool] | Callable[[Sequence[BaseAgentEvent | BaseChatMessage]], Awaitable[bool]]): A function that takes a sequence of messages
