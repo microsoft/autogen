@@ -14,4 +14,4 @@ class MessageDroppedException(Exception):
 
 
 class NotAccessibleError(Exception):
-    """Tried to access a value that is not accessible. For example if it is remote cannot be accessed locally."""
+    """Tried to access a value that is not accessible. For example, if it is remote, it cannot be accessed locally."""
