@@ -59,6 +59,129 @@ async def test_cache_basic_with_args() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cache_hit_does_not_mutate_original_result() -> None:
+    _, prompts, system_prompt, _, cached_client = get_test_data(num_messages=1)
+    messages: List[LLMMessage] = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    original = await cached_client.create(messages)
+    cached = await cached_client.create(messages)
+
+    assert not original.cached
+    assert cached.cached
+    assert original is not cached
+
+
+@pytest.mark.asyncio
+async def test_cache_miss_result_is_not_shared_with_the_store() -> None:
+    _, prompts, system_prompt, _, cached_client = get_test_data(num_messages=1)
+    messages: List[LLMMessage] = [system_prompt, UserMessage(content=prompts[0], source="user")]
+
+    first = await cached_client.create(messages)
+    assert not first.cached
+    first.content = "caller edited"
+
+    cached = await cached_client.create(messages)
+    assert cached.cached
+    assert cached.content == "This is dummy message number 0"
+
+
+@pytest.mark.asyncio
+async def test_cache_hit_isolates_nested_tool_calls() -> None:
+    messages: List[LLMMessage] = [UserMessage(content="hello", source="user")]
+    replay_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                content=[FunctionCall(id="call_1", name="get_weather", arguments='{"city": "Paris"}')],
+                finish_reason="function_calls",
+                usage=RequestUsage(prompt_tokens=5, completion_tokens=7),
+                cached=False,
+            )
+        ]
+    )
+    replay_client.set_cached_bool_value(False)
+    cached_client = ChatCompletionCache(replay_client)
+
+    first = await cached_client.create(messages)
+    assert not first.cached
+
+    hit = await cached_client.create(messages)
+    assert hit.cached
+    hit_content = hit.content
+    assert isinstance(hit_content, list)
+    hit_content[0].arguments = '{"city": "Berlin"}'
+
+    second_hit = await cached_client.create(messages)
+    assert second_hit.cached
+    content = second_hit.content
+    assert isinstance(content, list)
+    assert content[0].arguments == '{"city": "Paris"}'
+
+
+@pytest.mark.asyncio
+async def test_cache_stream_hit_isolates_nested_tool_calls() -> None:
+    messages: List[LLMMessage] = [UserMessage(content="hello", source="user")]
+    replay_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                content=[FunctionCall(id="call_1", name="get_weather", arguments='{"city": "Paris"}')],
+                finish_reason="function_calls",
+                usage=RequestUsage(prompt_tokens=5, completion_tokens=7),
+                cached=False,
+            )
+        ]
+    )
+    replay_client.set_cached_bool_value(False)
+    cached_client = ChatCompletionCache(replay_client)
+
+    async for _ in cached_client.create_stream(messages):
+        pass
+
+    async for chunk in cached_client.create_stream(messages):
+        if isinstance(chunk, CreateResult):
+            assert chunk.cached
+            content = chunk.content
+            assert isinstance(content, list)
+            content[0].arguments = '{"city": "Berlin"}'
+
+    async for chunk in cached_client.create_stream(messages):
+        if isinstance(chunk, CreateResult):
+            assert chunk.cached
+            content = chunk.content
+            assert isinstance(content, list)
+            assert content[0].arguments == '{"city": "Paris"}'
+
+
+@pytest.mark.asyncio
+async def test_cache_stream_miss_chunk_is_not_shared_with_the_store() -> None:
+    messages: List[LLMMessage] = [UserMessage(content="hello", source="user")]
+    replay_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                content=[FunctionCall(id="call_1", name="get_weather", arguments='{"city": "Paris"}')],
+                finish_reason="function_calls",
+                usage=RequestUsage(prompt_tokens=5, completion_tokens=7),
+                cached=False,
+            )
+        ]
+    )
+    replay_client.set_cached_bool_value(False)
+    cached_client = ChatCompletionCache(replay_client)
+
+    async for chunk in cached_client.create_stream(messages):
+        if isinstance(chunk, CreateResult):
+            assert not chunk.cached
+            content = chunk.content
+            assert isinstance(content, list)
+            content[0].arguments = '{"city": "Berlin"}'
+
+    cached = await cached_client.create(messages)
+    assert cached.cached
+    content = cached.content
+    assert isinstance(content, list)
+    assert content[0].arguments == '{"city": "Paris"}'
+
+
+@pytest.mark.asyncio
 async def test_cache_structured_output_with_args() -> None:
     responses, prompts, system_prompt, _, cached_client = get_test_data(num_messages=4)
 
