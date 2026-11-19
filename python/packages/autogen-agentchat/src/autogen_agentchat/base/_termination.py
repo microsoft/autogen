@@ -90,6 +90,29 @@ class AndTerminationConditionConfig(BaseModel):
 
 
 class AndTerminationCondition(TerminationCondition, Component[AndTerminationConditionConfig]):
+    """A termination condition that is met only when all of the given conditions have been met.
+
+    Each time it is called, only the conditions that have not yet been met are checked.
+    The stop messages of conditions that have been met are remembered across calls, so the
+    conditions do not have to be met at the same time. Once all conditions have been met,
+    a single :class:`~autogen_agentchat.messages.StopMessage` is returned, with the contents
+    and sources of all the stop messages joined by commas. Call :meth:`reset` to use it again.
+
+    This class is usually created with the ``&`` operator rather than directly.
+
+    Args:
+        *conditions (TerminationCondition): The termination conditions that must all be met.
+
+    Example:
+
+        .. code-block:: python
+
+            from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+
+            # Terminate only after 10 messages AND the text "TERMINATE" has been mentioned.
+            cond = MaxMessageTermination(10) & TextMentionTermination("TERMINATE")
+    """
+
     component_config_schema = AndTerminationConditionConfig
     component_type = "termination"
     component_provider_override = "autogen_agentchat.base.AndTerminationCondition"
@@ -142,6 +165,28 @@ class OrTerminationConditionConfig(BaseModel):
 
 
 class OrTerminationCondition(TerminationCondition, Component[OrTerminationConditionConfig]):
+    """A termination condition that is met as soon as any one of the given conditions is met.
+
+    Each time it is called, all of the conditions are checked. If one or more of them are met,
+    a single :class:`~autogen_agentchat.messages.StopMessage` is returned, with the contents and
+    sources of the stop messages of the conditions that were met joined by commas. Call
+    :meth:`reset` to reset all of the conditions so that it can be used again.
+
+    This class is usually created with the ``|`` operator rather than directly.
+
+    Args:
+        *conditions (TerminationCondition): The termination conditions, any one of which can end the conversation.
+
+    Example:
+
+        .. code-block:: python
+
+            from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+
+            # Terminate after 10 messages OR when the text "TERMINATE" is mentioned.
+            cond = MaxMessageTermination(10) | TextMentionTermination("TERMINATE")
+    """
+
     component_config_schema = OrTerminationConditionConfig
     component_type = "termination"
     component_provider_override = "autogen_agentchat.base.OrTerminationCondition"
