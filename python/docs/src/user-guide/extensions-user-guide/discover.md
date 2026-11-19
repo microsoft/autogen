@@ -47,6 +47,8 @@ Find community samples and examples of how to use AutoGen
 | [autogen-contextplus](https://github.com/SongChiYoung/autogen-contextplus)  | [PyPi](https://pypi.org/project/autogen-contextplus/) | Enhanced model_context implementations, with features such as automatic summarization and truncation of model context. |
 | [autogen-ext-yepcode](https://github.com/yepcode/autogen-ext-yepcode)  | [PyPi](https://pypi.org/project/autogen-ext-yepcode/) | Enables agents to securely execute code in isolated remote sandboxes using [YepCode](https://yepcode.io)’s serverless runtime. |
 
+| [clickhouse-loom](https://github.com/ClickHouse/loom/blob/v1.3.0-rc.1/docs/features/integrations/frameworks.md#autogen) | [PyPi](https://pypi.org/project/clickhouse-loom/1.3.0rc1/) | `LoomMemory` implements `autogen_core.memory.Memory` using a self-hosted Loom deployment. |
+
 
 <!-- Example -->
 <!-- | [My Model Client](https://github.com/example)  | [PyPi](https://pypi.org/project/example) | Model client for my custom model service | -->
