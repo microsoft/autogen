@@ -1143,6 +1143,37 @@ async def test_message_filter_agent_with_position_none_gets_all() -> None:
 
 
 @pytest.mark.asyncio
+async def test_message_filter_agent_preserves_chronological_order() -> None:
+    """Regression #7971: filtered messages must arrive in original chronological order.
+
+    When per_source lists 'A' before 'user', the result must still be ordered by
+    each message's position in the original conversation, not by filter-config order.
+    """
+    inner_agent = _TestMessageFilterAgent("inner")
+    wrapper = MessageFilterAgent(
+        name="wrapper",
+        wrapped_agent=inner_agent,
+        filter=MessageFilterConfig(
+            per_source=[
+                PerSourceFilter(source="A", position="last", count=1),
+                PerSourceFilter(source="user", position="first", count=1),
+            ]
+        ),
+    )
+    messages = [
+        TextMessage(source="user", content="user-first"),
+        TextMessage(source="A", content="A-first"),
+        TextMessage(source="A", content="A-second"),
+    ]
+    await wrapper.on_messages(messages, CancellationToken())
+    received = inner_agent.received_messages
+    assert len(received) == 2
+    # user message came first in the original list, so it must arrive first
+    assert received[0].content == "user-first"  # type: ignore[attr-defined]
+    assert received[1].content == "A-second"  # type: ignore[attr-defined]
+
+
+@pytest.mark.asyncio
 async def test_digraph_group_chat() -> None:
     inner_agent = _TestMessageFilterAgent("agent")
     wrapper = MessageFilterAgent(
