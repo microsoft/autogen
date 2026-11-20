@@ -104,6 +104,17 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+The same `McpWorkbench` pattern works over Streamable HTTP. Example: Lantern Works, a hosted, free, no-key MCP server that compares live cloud GPU rental prices (https://thelanternworks.com/api/):
+
+```python
+from autogen_ext.tools.mcp import McpWorkbench, StreamableHttpServerParams
+
+server_params = StreamableHttpServerParams(
+    url="https://lantern-works-mcp.lantern-works.workers.dev/mcp?ref=autogen",
+)
+# Then use `async with McpWorkbench(server_params) as mcp:` as above.
+```
+
 > **Warning**: Only connect to trusted MCP servers as they may execute commands
 > in your local environment or expose sensitive information.
 
